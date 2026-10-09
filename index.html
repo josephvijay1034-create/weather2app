@@ -4,220 +4,352 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IoT Weather Monitoring</title>
+<title>IoT Weather Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-* {
-  box-sizing: border-box;
+*{box-sizing:border-box}
+body{
+ margin:0;font-family:Arial,sans-serif;color:#eaf2ff;
+ background:#0b1220;
 }
-
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #101827, #164e63);
-  color: white;
-  min-height: 100vh;
+header{
+ padding:25px;text-align:center;
+ background:linear-gradient(120deg,#102b50,#075985);
 }
-
-header {
-  text-align: center;
-  padding: 28px 15px;
+header h1{margin:0 0 8px}
+header p{color:#cbd5e1}
+.container{max-width:1200px;margin:auto;padding:22px}
+.topbar{
+ display:flex;justify-content:space-between;
+ gap:12px;flex-wrap:wrap;margin-bottom:20px;
 }
-
-header h1 {
-  margin: 0 0 10px;
-  font-size: 30px;
+.pill{padding:10px 14px;border-radius:20px;background:#1e293b}
+.cards{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+ gap:16px;
 }
-
-header p {
-  color: #cbd5e1;
+.card,.panel{
+ background:#151f30;border:1px solid #29384e;
+ border-radius:15px;padding:20px;
 }
-
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
+.card .emoji{font-size:30px}
+.card h3{font-size:14px;color:#a8b8ce}
+.value{font-size:29px;font-weight:bold;margin:12px 0}
+.sub{font-size:13px;color:#9fb1c8}
+.section-title{margin:28px 0 14px}
+.charts{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+ gap:16px;
 }
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+.chartbox{height:260px;position:relative}
+.panel{margin-top:16px}
+table{width:100%;border-collapse:collapse}
+td,th{text-align:left;padding:12px;border-bottom:1px solid #29384e}
+th{color:#9fb1c8}
+footer{text-align:center;padding:25px;color:#8fa3bd}
+button{
+ border:0;padding:10px 15px;border-radius:8px;
+ background:#38bdf8;color:#082032;cursor:pointer;font-weight:bold
 }
-
-.card {
-  background: rgba(255,255,255,0.10);
-  padding: 28px 20px;
-  border-radius: 18px;
-  text-align: center;
-  border: 1px solid rgba(255,255,255,0.15);
-}
-
-.icon {
-  font-size: 48px;
-}
-
-.card h2 {
-  font-size: 19px;
-  color: #cbd5e1;
-}
-
-.value {
-  font-size: 38px;
-  font-weight: bold;
-  margin: 15px 0;
-}
-
-.status {
-  color: #67e8f9;
-}
-
-.panel {
-  background: rgba(255,255,255,0.08);
-  margin-top: 22px;
-  padding: 20px;
-  border-radius: 14px;
-  line-height: 1.8;
-}
-
-footer {
-  text-align: center;
-  padding: 25px;
-  color: #cbd5e1;
-}
-
-@media (max-width: 480px) {
-  header h1 { font-size: 24px; }
-  .value { font-size: 32px; }
+@media(max-width:500px){
+ .container{padding:12px}
+ header h1{font-size:23px}
+ .value{font-size:25px}
 }
 </style>
 </head>
 
 <body>
-
 <header>
-  <h1>🌦️ IoT Weather Monitoring</h1>
-  <p>ESP32 + Temperature Sensor + Firebase</p>
+ <h1>🌦️ IoT Weather Monitoring</h1>
+ <p>ESP32 • Sensors • Firebase Realtime Database</p>
 </header>
 
-<div class="container">
+<main class="container">
 
-  <div class="cards">
+ <div class="topbar">
+  <div class="pill" id="connection">🟡 Connecting...</div>
+  <div class="pill">🕒 <span id="clock">--</span></div>
+  <button onclick="location.reload()">↻ Refresh</button>
+ </div>
 
-    <div class="card">
-      <div class="icon">🌡️</div>
-      <h2>Temperature</h2>
-      <div class="value" id="temperature">-- °C</div>
-      <div class="status" id="tempStatus">Waiting for data...</div>
-    </div>
+ <h2 class="section-title">Live Sensor Data</h2>
+ <div class="cards">
 
-    <div class="card">
-      <div class="icon">💧</div>
-      <h2>Humidity</h2>
-      <div class="value" id="humidity">-- %</div>
-      <div class="status" id="humidityStatus">Waiting for data...</div>
-    </div>
-
+  <div class="card">
+   <div class="emoji">🌡️</div><h3>Temperature</h3>
+   <div class="value" id="temp">--</div>
+   <div class="sub" id="tempStatus">Waiting for data</div>
   </div>
 
+  <div class="card">
+   <div class="emoji">💧</div><h3>Humidity</h3>
+   <div class="value" id="humidity">--</div>
+   <div class="sub" id="humidityStatus">Waiting for data</div>
+  </div>
+
+  <div class="card">
+   <div class="emoji">🌬️</div><h3>Air Pressure</h3>
+   <div class="value" id="pressure">No data</div>
+   <div class="sub">hPa</div>
+  </div>
+
+  <div class="card">
+   <div class="emoji">💨</div><h3>Wind Speed</h3>
+   <div class="value" id="wind">No data</div>
+   <div class="sub">m/s</div>
+  </div>
+
+  <div class="card">
+   <div class="emoji">🌧️</div><h3>Rainfall</h3>
+   <div class="value" id="rain">No data</div>
+   <div class="sub">mm</div>
+  </div>
+
+  <div class="card">
+   <div class="emoji">☀️</div><h3>Light Intensity</h3>
+   <div class="value" id="light">No data</div>
+   <div class="sub">lux</div>
+  </div>
+
+  <div class="card">
+   <div class="emoji">🌤️</div><h3>Weather Status</h3>
+   <div class="value" id="condition">--</div>
+   <div class="sub">Based on temperature and humidity</div>
+  </div>
+
+  <div class="card">
+   <div class="emoji">📡</div><h3>Last Sensor Update</h3>
+   <div class="value" style="font-size:19px" id="updated">--</div>
+   <div class="sub">Timestamp supplied by device if available</div>
+  </div>
+
+ </div>
+
+ <h2 class="section-title">📊 Sensor Charts</h2>
+ <div class="charts">
   <div class="panel">
-    <h2>📡 Connection Status</h2>
-    <p id="connection">Connecting to Firebase...</p>
-    <p><b>Last update:</b> <span id="lastUpdate">--</span></p>
-    <p><b>Weather condition:</b> <span id="condition">Waiting for sensor data</span></p>
+   <h3>Temperature History (°C)</h3>
+   <div class="chartbox"><canvas id="tempChart"></canvas></div>
   </div>
+  <div class="panel">
+   <h3>Humidity History (%)</h3>
+   <div class="chartbox"><canvas id="humidityChart"></canvas></div>
+  </div>
+ </div>
 
-</div>
+ <h2 class="section-title">📈 Temperature Statistics</h2>
+ <div class="cards">
+  <div class="card"><h3>Minimum observed</h3>
+   <div class="value" id="minTemp">--</div></div>
+  <div class="card"><h3>Maximum observed</h3>
+   <div class="value" id="maxTemp">--</div></div>
+  <div class="card"><h3>Average observed</h3>
+   <div class="value" id="avgTemp">--</div></div>
+  <div class="card"><h3>Samples received</h3>
+   <div class="value" id="samples">0</div></div>
+ </div>
 
-<footer>
-  IoT Weather Monitoring System | Real-Time Firebase Dashboard
-</footer>
+ <div class="panel">
+  <h2>📋 Current Sensor Readings</h2>
+  <table>
+   <thead><tr><th>Parameter</th><th>Value</th><th>Status</th></tr></thead>
+   <tbody id="readingTable">
+    <tr><td colspan="3">Waiting for Firebase data...</td></tr>
+   </tbody>
+  </table>
+ </div>
+
+ <div class="panel">
+  <h3>ℹ️ Dashboard Information</h3>
+  <p>Database path: <code>/weather</code></p>
+  <p>Connection: <span id="dbStatus">Waiting...</span></p>
+  <p class="sub">Charts and statistics in this page are based on readings
+  received while this page is open. They are not permanent historical records.</p>
+ </div>
+
+</main>
+
+<footer>IoT Weather Station • ESP32 + Firebase</footer>
 
 <script type="module">
-import { initializeApp } from
-  "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {initializeApp}
+ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getDatabase,ref,onValue}
+ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-import {
-  getDatabase,
-  ref,
-  onValue
-} from
-  "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-// Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAvhSpYPVlrJw6q2akkBm0TATPnhMWokP0",
-  authDomain: "temperature-control-syst-a3cae.firebaseapp.com",
-  databaseURL: "https://temperature-control-syst-a3cae-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "temperature-control-syst-a3cae",
-  storageBucket: "temperature-control-syst-a3cae.firebasestorage.app",
-  messagingSenderId: "133740483567",
-  appId: "1:133740483567:web:3d5969c0ea3ca6473d9c1a",
-  measurementId: "G-XMXZN4DTMY"
+ apiKey: "AIzaSyAvhSpYPVlrJw6q2akkBm0TATPnhMWokP0",
+ authDomain: "temperature-control-syst-a3cae.firebaseapp.com",
+ databaseURL: "https://temperature-control-syst-a3cae-default-rtdb.asia-southeast1.firebasedatabase.app",
+ projectId: "temperature-control-syst-a3cae",
+ storageBucket: "temperature-control-syst-a3cae.firebasestorage.app",
+ messagingSenderId: "133740483567",
+ appId: "1:133740483567:web:3d5969c0ea3ca6473d9c1a",
+ measurementId: "G-XMXZN4DTMY"
 };
 
 const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+const db = getDatabase(app);
 
-const temperatureRef = ref(database, "/weather/temperature");
-const humidityRef = ref(database, "/weather/humidity");
+const $ = id => document.getElementById(id);
+const history = [];
+let latest = {};
 
-let temperature = null;
-let humidity = null;
-
-function updateDashboard() {
-  if (temperature === null || humidity === null) return;
-
-  document.getElementById("temperature").textContent =
-    temperature.toFixed(1) + " °C";
-
-  document.getElementById("humidity").textContent =
-    humidity.toFixed(1) + " %";
-
-  document.getElementById("tempStatus").textContent =
-    temperature >= 35 ? "High temperature" :
-    temperature <= 15 ? "Low temperature" : "Normal temperature";
-
-  document.getElementById("humidityStatus").textContent =
-    humidity >= 70 ? "High humidity" :
-    humidity <= 30 ? "Low humidity" : "Normal humidity";
-
-  document.getElementById("condition").textContent =
-    temperature >= 35 ? "Hot" :
-    temperature <= 15 ? "Cool" : "Moderate";
-
-  document.getElementById("lastUpdate").textContent =
-    new Date().toLocaleTimeString();
-
-  document.getElementById("connection").textContent =
-    "🟢 Connected — receiving Firebase data";
+function number(value) {
+ if (value === null || value === undefined || value === "") return null;
+ const n = Number(value);
+ return Number.isFinite(n) ? n : null;
 }
 
-onValue(temperatureRef, (snapshot) => {
-  const value = snapshot.val();
+function display(id,value,unit="") {
+ $(id).textContent = value === null ? "No data" : value + unit;
+}
 
-  if (typeof value === "number" && Number.isFinite(value)) {
-    temperature = value;
-    updateDashboard();
-  }
-}, (error) => {
-  document.getElementById("connection").textContent =
-    "Temperature read error: " + error.message;
+const commonOptions = {
+ responsive:true, maintainAspectRatio:false,
+ animation:false,
+ scales:{
+  x:{ticks:{color:"#a8b8ce"},grid:{color:"#29384e"}},
+  y:{ticks:{color:"#a8b8ce"},grid:{color:"#29384e"}}
+ },
+ plugins:{legend:{display:false}}
+};
+
+function makeChart(id,label) {
+ return new Chart($(id),{
+  type:"line",
+  data:{labels:[],datasets:[{
+   label,data:[],borderColor:label==="Temperature"?"#38bdf8":"#34d399",
+   backgroundColor:label==="Temperature"?"#38bdf822":"#34d39922",
+   fill:true,tension:0.3,pointRadius:2
+  }]},
+  options:commonOptions
+ });
+}
+
+const tc = makeChart("tempChart","Temperature");
+const hc = makeChart("humidityChart","Humidity");
+
+function updateChart(chart,value) {
+ if(value===null) return;
+ const label = new Date().toLocaleTimeString();
+ chart.data.labels.push(label);
+ chart.data.datasets[0].data.push(value);
+ if(chart.data.labels.length>30){
+  chart.data.labels.shift();
+  chart.data.datasets[0].data.shift();
+ }
+ chart.update("none");
+}
+
+function updateStats() {
+ const values=history.map(x=>x.temperature).filter(v=>v!==null);
+ $("samples").textContent=values.length;
+ if(!values.length) return;
+ $("minTemp").textContent=Math.min(...values).toFixed(1)+" °C";
+ $("maxTemp").textContent=Math.max(...values).toFixed(1)+" °C";
+ $("avgTemp").textContent=
+  (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1)+" °C";
+}
+
+function updateTable(d) {
+ const rows=[
+  ["Temperature",d.temperature,"°C"],
+  ["Humidity",d.humidity,"%"],
+  ["Air pressure",d.pressure," hPa"],
+  ["Wind speed",d.wind," m/s"],
+  ["Rainfall",d.rain," mm"],
+  ["Light intensity",d.light," lux"]
+ ];
+ $("readingTable").innerHTML="";
+ rows.forEach(([name,value,unit])=>{
+  const tr=document.createElement("tr");
+  const a=document.createElement("td");
+  const b=document.createElement("td");
+  const c=document.createElement("td");
+  a.textContent=name;
+  b.textContent=value===null?"No data":value+unit;
+  c.textContent=value===null?"Not supplied":"Received";
+  tr.append(a,b,c);
+  $("readingTable").appendChild(tr);
+ });
+}
+
+function render(d) {
+ latest={
+  temperature:number(d.temperature),
+  humidity:number(d.humidity),
+  pressure:number(d.pressure),
+  wind:number(d.windSpeed ?? d.wind),
+  rain:number(d.rainfall ?? d.rain),
+  light:number(d.lightIntensity ?? d.light)
+ };
+
+ const t=latest.temperature,h=latest.humidity;
+
+ display("temp",t===null?null:t.toFixed(1)," °C");
+ display("humidity",h===null?null:h.toFixed(1)," %");
+ display("pressure",latest.pressure," hPa");
+ display("wind",latest.wind," m/s");
+ display("rain",latest.rain," mm");
+ display("light",latest.light," lux");
+
+ $("tempStatus").textContent=t===null?"No sensor data":
+  t>=35?"High temperature":t<=15?"Low temperature":"Moderate temperature";
+ $("humidityStatus").textContent=h===null?"No sensor data":
+  h>=70?"High humidity":h<=30?"Low humidity":"Moderate humidity";
+ $("condition").textContent=t===null?"--":
+  t>=35?"Hot":t<=15?"Cool":"Moderate";
+
+ const timestamp=d.timestamp;
+ if(timestamp!==undefined && timestamp!==null) {
+  let dt=typeof timestamp==="number"
+   ?new Date(timestamp<1e12?timestamp*1000:timestamp)
+   :new Date(timestamp);
+  $("updated").textContent=Number.isNaN(dt.getTime())
+   ?String(timestamp):dt.toLocaleTimeString();
+ } else {
+  $("updated").textContent="Received just now";
+ }
+
+ updateTable(latest);
+
+ // Only add a sample when temperature or humidity actually changes.
+ const signature=[t,h].join("|");
+ if((t!==null||h!==null) &&
+    history.at(-1)?.signature!==signature) {
+  history.push({temperature:t,humidity:h,signature});
+  if(history.length>300) history.shift();
+  updateChart(tc,t);
+  updateChart(hc,h);
+  updateStats();
+ }
+}
+
+onValue(ref(db,"/weather"),snapshot=>{
+ const data=snapshot.val();
+ $("connection").textContent="🟢 Firebase connected";
+ $("dbStatus").textContent="Connected; listening for updates";
+ if(data && typeof data==="object") {
+  render(data);
+ } else {
+  $("condition").textContent="No data";
+  $("connection").textContent="🟡 Connected — no sensor readings";
+  $("readingTable").innerHTML=
+   "<tr><td colspan='3'>No data at /weather yet.</td></tr>";
+ }
+},error=>{
+ $("connection").textContent="🔴 Firebase read error";
+ $("dbStatus").textContent=error.message;
 });
 
-onValue(humidityRef, (snapshot) => {
-  const value = snapshot.val();
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    humidity = value;
-    updateDashboard();
-  }
-}, (error) => {
-  document.getElementById("connection").textContent =
-    "Humidity read error: " + error.message;
-});
+setInterval(()=>{
+ $("clock").textContent=new Date().toLocaleString();
+},1000);
 </script>
-
 </body>
 </html>
 ```
