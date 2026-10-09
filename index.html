@@ -1,0 +1,223 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IoT Weather Monitoring</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #101827, #164e63);
+  color: white;
+  min-height: 100vh;
+}
+
+header {
+  text-align: center;
+  padding: 28px 15px;
+}
+
+header h1 {
+  margin: 0 0 10px;
+  font-size: 30px;
+}
+
+header p {
+  color: #cbd5e1;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.10);
+  padding: 28px 20px;
+  border-radius: 18px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.icon {
+  font-size: 48px;
+}
+
+.card h2 {
+  font-size: 19px;
+  color: #cbd5e1;
+}
+
+.value {
+  font-size: 38px;
+  font-weight: bold;
+  margin: 15px 0;
+}
+
+.status {
+  color: #67e8f9;
+}
+
+.panel {
+  background: rgba(255,255,255,0.08);
+  margin-top: 22px;
+  padding: 20px;
+  border-radius: 14px;
+  line-height: 1.8;
+}
+
+footer {
+  text-align: center;
+  padding: 25px;
+  color: #cbd5e1;
+}
+
+@media (max-width: 480px) {
+  header h1 { font-size: 24px; }
+  .value { font-size: 32px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🌦️ IoT Weather Monitoring</h1>
+  <p>ESP32 + Temperature Sensor + Firebase</p>
+</header>
+
+<div class="container">
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="icon">🌡️</div>
+      <h2>Temperature</h2>
+      <div class="value" id="temperature">-- °C</div>
+      <div class="status" id="tempStatus">Waiting for data...</div>
+    </div>
+
+    <div class="card">
+      <div class="icon">💧</div>
+      <h2>Humidity</h2>
+      <div class="value" id="humidity">-- %</div>
+      <div class="status" id="humidityStatus">Waiting for data...</div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <h2>📡 Connection Status</h2>
+    <p id="connection">Connecting to Firebase...</p>
+    <p><b>Last update:</b> <span id="lastUpdate">--</span></p>
+    <p><b>Weather condition:</b> <span id="condition">Waiting for sensor data</span></p>
+  </div>
+
+</div>
+
+<footer>
+  IoT Weather Monitoring System | Real-Time Firebase Dashboard
+</footer>
+
+<script type="module">
+import { initializeApp } from
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue
+} from
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// Your Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAvhSpYPVlrJw6q2akkBm0TATPnhMWokP0",
+  authDomain: "temperature-control-syst-a3cae.firebaseapp.com",
+  databaseURL: "https://temperature-control-syst-a3cae-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "temperature-control-syst-a3cae",
+  storageBucket: "temperature-control-syst-a3cae.firebasestorage.app",
+  messagingSenderId: "133740483567",
+  appId: "1:133740483567:web:3d5969c0ea3ca6473d9c1a",
+  measurementId: "G-XMXZN4DTMY"
+};
+
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+
+const temperatureRef = ref(database, "/weather/temperature");
+const humidityRef = ref(database, "/weather/humidity");
+
+let temperature = null;
+let humidity = null;
+
+function updateDashboard() {
+  if (temperature === null || humidity === null) return;
+
+  document.getElementById("temperature").textContent =
+    temperature.toFixed(1) + " °C";
+
+  document.getElementById("humidity").textContent =
+    humidity.toFixed(1) + " %";
+
+  document.getElementById("tempStatus").textContent =
+    temperature >= 35 ? "High temperature" :
+    temperature <= 15 ? "Low temperature" : "Normal temperature";
+
+  document.getElementById("humidityStatus").textContent =
+    humidity >= 70 ? "High humidity" :
+    humidity <= 30 ? "Low humidity" : "Normal humidity";
+
+  document.getElementById("condition").textContent =
+    temperature >= 35 ? "Hot" :
+    temperature <= 15 ? "Cool" : "Moderate";
+
+  document.getElementById("lastUpdate").textContent =
+    new Date().toLocaleTimeString();
+
+  document.getElementById("connection").textContent =
+    "🟢 Connected — receiving Firebase data";
+}
+
+onValue(temperatureRef, (snapshot) => {
+  const value = snapshot.val();
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    temperature = value;
+    updateDashboard();
+  }
+}, (error) => {
+  document.getElementById("connection").textContent =
+    "Temperature read error: " + error.message;
+});
+
+onValue(humidityRef, (snapshot) => {
+  const value = snapshot.val();
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    humidity = value;
+    updateDashboard();
+  }
+}, (error) => {
+  document.getElementById("connection").textContent =
+    "Humidity read error: " + error.message;
+});
+</script>
+
+</body>
+</html>
+```
