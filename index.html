@@ -3,352 +3,232 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IoT Weather Dashboard</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World Weather Dashboard</title>
 
 <style>
 *{box-sizing:border-box}
 body{
- margin:0;font-family:Arial,sans-serif;color:#eaf2ff;
- background:#0b1220;
+ margin:0;font-family:Arial,sans-serif;color:#fff;
+ background:linear-gradient(135deg,#07152e,#075985);
+ min-height:100vh;padding:20px
 }
-header{
- padding:25px;text-align:center;
- background:linear-gradient(120deg,#102b50,#075985);
-}
-header h1{margin:0 0 8px}
+.container{max-width:850px;margin:auto}
+header{text-align:center;padding:20px}
+header h1{font-size:32px}
 header p{color:#cbd5e1}
-.container{max-width:1200px;margin:auto;padding:22px}
-.topbar{
- display:flex;justify-content:space-between;
- gap:12px;flex-wrap:wrap;margin-bottom:20px;
+.search{display:flex;gap:10px;margin:20px 0}
+input,button{
+ padding:14px;border:0;border-radius:10px;font-size:16px
 }
-.pill{padding:10px 14px;border-radius:20px;background:#1e293b}
+input{flex:1;min-width:0;background:#fff;color:#111}
+button{background:#38bdf8;color:#082032;cursor:pointer;font-weight:bold}
+button:disabled{opacity:.5}
+#message{color:#fde68a;min-height:24px}
+#results{display:grid;gap:10px}
+.city{
+ padding:15px;background:#172c46;border-radius:12px;
+ cursor:pointer;border:1px solid #36516c
+}
+.city:hover{background:#254563}
 .cards{
- display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
- gap:16px;
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));
+ gap:14px;margin-top:22px
 }
-.card,.panel{
- background:#151f30;border:1px solid #29384e;
- border-radius:15px;padding:20px;
+.card{
+ padding:22px;background:#172c46;border:1px solid #36516c;
+ border-radius:15px
 }
-.card .emoji{font-size:30px}
-.card h3{font-size:14px;color:#a8b8ce}
-.value{font-size:29px;font-weight:bold;margin:12px 0}
-.sub{font-size:13px;color:#9fb1c8}
-.section-title{margin:28px 0 14px}
-.charts{
- display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
- gap:16px;
+.card h3{font-size:15px;color:#cbd5e1}
+.value{font-size:27px;font-weight:bold;margin:15px 0}
+.panel{
+ margin-top:20px;background:#172c46;padding:20px;
+ border-radius:15px
 }
-.chartbox{height:260px;position:relative}
-.panel{margin-top:16px}
-table{width:100%;border-collapse:collapse}
-td,th{text-align:left;padding:12px;border-bottom:1px solid #29384e}
-th{color:#9fb1c8}
-footer{text-align:center;padding:25px;color:#8fa3bd}
-button{
- border:0;padding:10px 15px;border-radius:8px;
- background:#38bdf8;color:#082032;cursor:pointer;font-weight:bold
-}
-@media(max-width:500px){
- .container{padding:12px}
- header h1{font-size:23px}
- .value{font-size:25px}
+.small{color:#cbd5e1;font-size:13px}
+@media(max-width:480px){
+ body{padding:10px}
+ header h1{font-size:25px}
+ .search{flex-direction:column}
 }
 </style>
 </head>
 
 <body>
+<div class="container">
+
 <header>
- <h1>🌦️ IoT Weather Monitoring</h1>
- <p>ESP32 • Sensors • Firebase Realtime Database</p>
+ <h1>🌍 World Weather</h1>
+ <p>Search any city to view real-time weather conditions</p>
 </header>
 
-<main class="container">
+<form class="search" id="searchForm">
+ <input id="cityInput" placeholder="Enter city (e.g. Chennai, London)"
+ required autocomplete="off">
+ <button id="searchBtn">Search 🔍</button>
+</form>
 
- <div class="topbar">
-  <div class="pill" id="connection">🟡 Connecting...</div>
-  <div class="pill">🕒 <span id="clock">--</span></div>
-  <button onclick="location.reload()">↻ Refresh</button>
+<div id="message">Enter a city name to get started.</div>
+<div id="results"></div>
+
+<section id="weather" hidden>
+ <div class="panel">
+  <h2 id="cityName">--</h2>
+  <p id="description">--</p>
+  <div class="value" id="mainTemp">--</div>
+  <p id="updated" class="small"></p>
  </div>
 
- <h2 class="section-title">Live Sensor Data</h2>
  <div class="cards">
-
   <div class="card">
-   <div class="emoji">🌡️</div><h3>Temperature</h3>
-   <div class="value" id="temp">--</div>
-   <div class="sub" id="tempStatus">Waiting for data</div>
+   <h3>🌡️ Feels Like</h3><div class="value" id="feels">--</div>
   </div>
-
   <div class="card">
-   <div class="emoji">💧</div><h3>Humidity</h3>
-   <div class="value" id="humidity">--</div>
-   <div class="sub" id="humidityStatus">Waiting for data</div>
+   <h3>💧 Humidity</h3><div class="value" id="humidity">--</div>
   </div>
-
   <div class="card">
-   <div class="emoji">🌬️</div><h3>Air Pressure</h3>
-   <div class="value" id="pressure">No data</div>
-   <div class="sub">hPa</div>
+   <h3>💨 Wind Speed</h3><div class="value" id="wind">--</div>
   </div>
-
   <div class="card">
-   <div class="emoji">💨</div><h3>Wind Speed</h3>
-   <div class="value" id="wind">No data</div>
-   <div class="sub">m/s</div>
+   <h3>🌬️ Wind Direction</h3><div class="value" id="direction">--</div>
   </div>
-
   <div class="card">
-   <div class="emoji">🌧️</div><h3>Rainfall</h3>
-   <div class="value" id="rain">No data</div>
-   <div class="sub">mm</div>
+   <h3>☁️ Cloud Cover</h3><div class="value" id="cloud">--</div>
   </div>
-
   <div class="card">
-   <div class="emoji">☀️</div><h3>Light Intensity</h3>
-   <div class="value" id="light">No data</div>
-   <div class="sub">lux</div>
+   <h3>🌧️ Rain (current hour)</h3><div class="value" id="rain">--</div>
   </div>
-
   <div class="card">
-   <div class="emoji">🌤️</div><h3>Weather Status</h3>
-   <div class="value" id="condition">--</div>
-   <div class="sub">Based on temperature and humidity</div>
+   <h3>📊 Air Pressure</h3><div class="value" id="pressure">--</div>
   </div>
-
   <div class="card">
-   <div class="emoji">📡</div><h3>Last Sensor Update</h3>
-   <div class="value" style="font-size:19px" id="updated">--</div>
-   <div class="sub">Timestamp supplied by device if available</div>
+   <h3>☀️ UV Index</h3><div class="value" id="uv">--</div>
   </div>
-
- </div>
-
- <h2 class="section-title">📊 Sensor Charts</h2>
- <div class="charts">
-  <div class="panel">
-   <h3>Temperature History (°C)</h3>
-   <div class="chartbox"><canvas id="tempChart"></canvas></div>
-  </div>
-  <div class="panel">
-   <h3>Humidity History (%)</h3>
-   <div class="chartbox"><canvas id="humidityChart"></canvas></div>
-  </div>
- </div>
-
- <h2 class="section-title">📈 Temperature Statistics</h2>
- <div class="cards">
-  <div class="card"><h3>Minimum observed</h3>
-   <div class="value" id="minTemp">--</div></div>
-  <div class="card"><h3>Maximum observed</h3>
-   <div class="value" id="maxTemp">--</div></div>
-  <div class="card"><h3>Average observed</h3>
-   <div class="value" id="avgTemp">--</div></div>
-  <div class="card"><h3>Samples received</h3>
-   <div class="value" id="samples">0</div></div>
  </div>
 
  <div class="panel">
-  <h2>📋 Current Sensor Readings</h2>
-  <table>
-   <thead><tr><th>Parameter</th><th>Value</th><th>Status</th></tr></thead>
-   <tbody id="readingTable">
-    <tr><td colspan="3">Waiting for Firebase data...</td></tr>
-   </tbody>
-  </table>
+  <h3>📅 Today's Forecast</h3>
+  <div id="forecast">Loading forecast...</div>
  </div>
+</section>
 
- <div class="panel">
-  <h3>ℹ️ Dashboard Information</h3>
-  <p>Database path: <code>/weather</code></p>
-  <p>Connection: <span id="dbStatus">Waiting...</span></p>
-  <p class="sub">Charts and statistics in this page are based on readings
-  received while this page is open. They are not permanent historical records.</p>
- </div>
+<footer class="small" style="text-align:center;padding:25px">
+ Weather data: Open-Meteo • Geocoding: Open-Meteo
+</footer>
+</div>
 
-</main>
-
-<footer>IoT Weather Station • ESP32 + Firebase</footer>
-
-<script type="module">
-import {initializeApp}
- from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getDatabase,ref,onValue}
- from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-const firebaseConfig = {
- apiKey: "AIzaSyAvhSpYPVlrJw6q2akkBm0TATPnhMWokP0",
- authDomain: "temperature-control-syst-a3cae.firebaseapp.com",
- databaseURL: "https://temperature-control-syst-a3cae-default-rtdb.asia-southeast1.firebasedatabase.app",
- projectId: "temperature-control-syst-a3cae",
- storageBucket: "temperature-control-syst-a3cae.firebasestorage.app",
- messagingSenderId: "133740483567",
- appId: "1:133740483567:web:3d5969c0ea3ca6473d9c1a",
- measurementId: "G-XMXZN4DTMY"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
+<script>
 const $ = id => document.getElementById(id);
-const history = [];
-let latest = {};
 
-function number(value) {
- if (value === null || value === undefined || value === "") return null;
- const n = Number(value);
- return Number.isFinite(n) ? n : null;
-}
-
-function display(id,value,unit="") {
- $(id).textContent = value === null ? "No data" : value + unit;
-}
-
-const commonOptions = {
- responsive:true, maintainAspectRatio:false,
- animation:false,
- scales:{
-  x:{ticks:{color:"#a8b8ce"},grid:{color:"#29384e"}},
-  y:{ticks:{color:"#a8b8ce"},grid:{color:"#29384e"}}
- },
- plugins:{legend:{display:false}}
+const codeText = {
+ 0:"Clear sky",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",
+ 45:"Fog",48:"Depositing rime fog",51:"Light drizzle",
+ 53:"Moderate drizzle",55:"Dense drizzle",61:"Slight rain",
+ 63:"Moderate rain",65:"Heavy rain",71:"Slight snow",
+ 73:"Moderate snow",75:"Heavy snow",80:"Rain showers",
+ 81:"Moderate rain showers",82:"Violent rain showers",
+ 95:"Thunderstorm",96:"Thunderstorm with hail",99:"Severe thunderstorm"
 };
 
-function makeChart(id,label) {
- return new Chart($(id),{
-  type:"line",
-  data:{labels:[],datasets:[{
-   label,data:[],borderColor:label==="Temperature"?"#38bdf8":"#34d399",
-   backgroundColor:label==="Temperature"?"#38bdf822":"#34d39922",
-   fill:true,tension:0.3,pointRadius:2
-  }]},
-  options:commonOptions
- });
+function showMessage(text){$("message").textContent=text;}
+
+async function getJSON(url){
+ const response=await fetch(url);
+ if(!response.ok)throw new Error("Weather service request failed.");
+ return response.json();
 }
 
-const tc = makeChart("tempChart","Temperature");
-const hc = makeChart("humidityChart","Humidity");
+$("searchForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const city=$("cityInput").value.trim();
+ if(!city)return;
 
-function updateChart(chart,value) {
- if(value===null) return;
- const label = new Date().toLocaleTimeString();
- chart.data.labels.push(label);
- chart.data.datasets[0].data.push(value);
- if(chart.data.labels.length>30){
-  chart.data.labels.shift();
-  chart.data.datasets[0].data.shift();
+ $("weather").hidden=true;
+ $("results").replaceChildren();
+ $("searchBtn").disabled=true;
+ showMessage("Searching worldwide...");
+
+ try{
+  const geo=await getJSON(
+   "https://geocoding-api.open-meteo.com/v1/search?name="+
+   encodeURIComponent(city)+"&count=10&language=en&format=json"
+  );
+
+  if(!geo.results?.length){
+   showMessage("City not found. Try another city name.");
+   return;
+  }
+
+  if(geo.results.length>1){
+   showMessage("Choose the correct city:");
+   geo.results.forEach(place=>{
+    const item=document.createElement("div");
+    item.className="city";
+    item.textContent=[place.name,place.admin1,place.country]
+      .filter(Boolean).join(", ");
+    item.addEventListener("click",()=>loadWeather(place));
+    $("results").appendChild(item);
+   });
+  }else{
+   await loadWeather(geo.results[0]);
+  }
+ }catch(error){
+  showMessage("Unable to load data. Check your internet connection and try again.");
+ }finally{
+  $("searchBtn").disabled=false;
  }
- chart.update("none");
-}
-
-function updateStats() {
- const values=history.map(x=>x.temperature).filter(v=>v!==null);
- $("samples").textContent=values.length;
- if(!values.length) return;
- $("minTemp").textContent=Math.min(...values).toFixed(1)+" °C";
- $("maxTemp").textContent=Math.max(...values).toFixed(1)+" °C";
- $("avgTemp").textContent=
-  (values.reduce((a,b)=>a+b,0)/values.length).toFixed(1)+" °C";
-}
-
-function updateTable(d) {
- const rows=[
-  ["Temperature",d.temperature,"°C"],
-  ["Humidity",d.humidity,"%"],
-  ["Air pressure",d.pressure," hPa"],
-  ["Wind speed",d.wind," m/s"],
-  ["Rainfall",d.rain," mm"],
-  ["Light intensity",d.light," lux"]
- ];
- $("readingTable").innerHTML="";
- rows.forEach(([name,value,unit])=>{
-  const tr=document.createElement("tr");
-  const a=document.createElement("td");
-  const b=document.createElement("td");
-  const c=document.createElement("td");
-  a.textContent=name;
-  b.textContent=value===null?"No data":value+unit;
-  c.textContent=value===null?"Not supplied":"Received";
-  tr.append(a,b,c);
-  $("readingTable").appendChild(tr);
- });
-}
-
-function render(d) {
- latest={
-  temperature:number(d.temperature),
-  humidity:number(d.humidity),
-  pressure:number(d.pressure),
-  wind:number(d.windSpeed ?? d.wind),
-  rain:number(d.rainfall ?? d.rain),
-  light:number(d.lightIntensity ?? d.light)
- };
-
- const t=latest.temperature,h=latest.humidity;
-
- display("temp",t===null?null:t.toFixed(1)," °C");
- display("humidity",h===null?null:h.toFixed(1)," %");
- display("pressure",latest.pressure," hPa");
- display("wind",latest.wind," m/s");
- display("rain",latest.rain," mm");
- display("light",latest.light," lux");
-
- $("tempStatus").textContent=t===null?"No sensor data":
-  t>=35?"High temperature":t<=15?"Low temperature":"Moderate temperature";
- $("humidityStatus").textContent=h===null?"No sensor data":
-  h>=70?"High humidity":h<=30?"Low humidity":"Moderate humidity";
- $("condition").textContent=t===null?"--":
-  t>=35?"Hot":t<=15?"Cool":"Moderate";
-
- const timestamp=d.timestamp;
- if(timestamp!==undefined && timestamp!==null) {
-  let dt=typeof timestamp==="number"
-   ?new Date(timestamp<1e12?timestamp*1000:timestamp)
-   :new Date(timestamp);
-  $("updated").textContent=Number.isNaN(dt.getTime())
-   ?String(timestamp):dt.toLocaleTimeString();
- } else {
-  $("updated").textContent="Received just now";
- }
-
- updateTable(latest);
-
- // Only add a sample when temperature or humidity actually changes.
- const signature=[t,h].join("|");
- if((t!==null||h!==null) &&
-    history.at(-1)?.signature!==signature) {
-  history.push({temperature:t,humidity:h,signature});
-  if(history.length>300) history.shift();
-  updateChart(tc,t);
-  updateChart(hc,h);
-  updateStats();
- }
-}
-
-onValue(ref(db,"/weather"),snapshot=>{
- const data=snapshot.val();
- $("connection").textContent="🟢 Firebase connected";
- $("dbStatus").textContent="Connected; listening for updates";
- if(data && typeof data==="object") {
-  render(data);
- } else {
-  $("condition").textContent="No data";
-  $("connection").textContent="🟡 Connected — no sensor readings";
-  $("readingTable").innerHTML=
-   "<tr><td colspan='3'>No data at /weather yet.</td></tr>";
- }
-},error=>{
- $("connection").textContent="🔴 Firebase read error";
- $("dbStatus").textContent=error.message;
 });
 
-setInterval(()=>{
- $("clock").textContent=new Date().toLocaleString();
-},1000);
+async function loadWeather(place){
+ showMessage("Loading real weather data...");
+ $("results").replaceChildren();
+
+ try{
+  const url="https://api.open-meteo.com/v1/forecast?latitude="+
+   place.latitude+"&longitude="+place.longitude+
+   "&current=temperature_2m,relative_humidity_2m,apparent_temperature,"+
+   "is_day,precipitation,weather_code,cloud_cover,pressure_msl,"+
+   "wind_speed_10m,wind_direction_10m"+
+   "&hourly=uv_index&daily=temperature_2m_max,temperature_2m_min,"+
+   "precipitation_probability_max&timezone=auto&forecast_days=1";
+
+  const data=await getJSON(url);
+  const c=data.current;
+  const d=data.daily;
+  const unit=data.current_units;
+
+  $("cityName").textContent=
+   [place.name,place.admin1,place.country].filter(Boolean).join(", ");
+  $("description").textContent=
+   (codeText[c.weather_code]||"Weather condition unavailable")+
+   (c.is_day?" • Daytime":" • Nighttime");
+
+  $("mainTemp").textContent=c.temperature_2m+" "+unit.temperature_2m;
+  $("feels").textContent=c.apparent_temperature+" "+unit.apparent_temperature;
+  $("humidity").textContent=c.relative_humidity_2m+"%";
+  $("wind").textContent=c.wind_speed_10m+" "+unit.wind_speed_10m;
+  $("direction").textContent=c.wind_direction_10m+"°";
+  $("cloud").textContent=c.cloud_cover+"%";
+  $("rain").textContent=c.precipitation+" "+unit.precipitation;
+  $("pressure").textContent=c.pressure_msl+" hPa";
+
+  const hourIndex=data.hourly.time.findIndex(t=>t===c.time);
+  $("uv").textContent=hourIndex>=0?data.hourly.uv_index[hourIndex]:"--";
+
+  $("updated").textContent="Local time: "+c.time+
+   " • Time zone: "+data.timezone;
+
+  $("forecast").textContent=
+   "High: "+d.temperature_2m_max[0]+"°C | Low: "+
+   d.temperature_2m_min[0]+"°C | Maximum precipitation probability: "+
+   d.precipitation_probability_max[0]+"%";
+
+  $("weather").hidden=false;
+  showMessage("Weather data loaded successfully.");
+ }catch(error){
+  showMessage("Could not load weather data. Please try again.");
+ }
+}
 </script>
 </body>
 </html>
